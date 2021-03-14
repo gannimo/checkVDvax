@@ -23,14 +23,14 @@ cron job.
 Simple local invocation:
 
 ```
-python3 checkvax.py 
+$ python3 checkvax.py 
 No new eligibility found, omitting availability.
 ```
 
 Give some more details:
 
 ```
-python3 checkvax.py -v
+$ python3 checkvax.py -v
 Checking availabilities:
 - Hôpital Intercantonal de la Broye (HIB) - Payerne: Rendez-vous disponibles
 - Centre CoVID-19 des Pâquis, Morges: Complet
@@ -50,7 +50,7 @@ patients atteints de COVID-19, urgences)**
 Check the diff:
 
 ```
-python3 checkvax.py -d -s
+$ python3 checkvax.py -d -s
 Webpage has changed, diff: +1 -1 lines.
 ```
 
