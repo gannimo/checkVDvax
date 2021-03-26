@@ -54,10 +54,20 @@ $ python3 checkvax.py -d -s
 Webpage has changed, diff: +1 -1 lines.
 ```
 
+If you want to run the script as `cron` job, you may add the following to your
+`crontab`:
+
+```
+*/15 *  * * *   USER cd /opt/checkvax && ./checkvax.py -s -d
+```
+
+You'll then receive an email to `USER` whenever the script picks something up.
+
 
 ## Changelog
 
-* 2021-03-14 verison 0.1
+* 2021-03-25 version 0.2: added new eligibility (65+)
+* 2021-03-14 version 0.1: first script with base eligibility (75+)
 
 
 ## Copyright and liability.
