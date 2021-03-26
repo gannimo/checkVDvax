@@ -17,7 +17,10 @@ OLD_ELIGIBILITY = [
 'Personnes âgées de 75 ans ou plus (nées en 1946 ou avant)',
 'Résidents et personnel des EMS',
 'Personnes avec maladie chronique à haut risque*',
-'Personnel de santé en contact régulier avec patient·e·s COVID-19 ou patient·e·s particulièrement vulnérables (soins intensifs, soins intermédiaires, services pour patients atteints de COVID-19, urgences)**'
+'Personnel de santé en contact régulier avec patient·e·s COVID-19 ou patient·e·s particulièrement vulnérables (soins intensifs, soins intermédiaires, services pour patients atteints de COVID-19, urgences)**',
+'Personnes âgées de 65 ans ou plus (nées en 1956 ou avant)',
+'Personnes avec maladie chronique à\xa0risque*',
+'Proches aidants avec carte d\'urgence de l\'AVASAD ou proches aidants accompagnés par un CMS***'
 ]
 
 OLD_FILE = 'vdvax.html'
@@ -79,12 +82,13 @@ def check_diff(html, args):
                 added += 1
             if line[0] == '-':
                 removed += 1
-            if args.verbose and (line[0] == '+' or line[0] == '-'):
+            if (line[0] == '+' or line[0] == '-'):
                 print(line)
 
         # Store new file
         if added != 0 or removed != 0:
             print('Webpage has changed, diff: +{} -{} lines.'.format(added, removed))
+            print('Go check out {}'.format(URL_VD))
             with open(OLD_FILE, 'w') as f:
                 f.write(html)
                 f.close()
@@ -106,6 +110,7 @@ if __name__ == "__main__":
     eligs = check_eligibility(soup, args.verbose)
 
     if len(eligs) != 0:
+        print('Eligibility has changed, go check out {}'.format(URL_VD))
         print('Eligibility:')
         print(eligs)
         print('Availability:')
