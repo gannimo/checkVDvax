@@ -10,20 +10,9 @@ from bs4 import BeautifulSoup
 from argparse import ArgumentParser
 import os
 import difflib
+import json
 
 URL_VD = 'https://coronavax.unisante.ch/'
-
-OLD_ELIGIBILITY = [
-'Personnes âgées de 75 ans ou plus (nées en 1946 ou avant)',
-'Résidents et personnel des EMS',
-'Personnes avec maladie chronique à haut risque*',
-'Personnel de santé en contact régulier avec patient·e·s COVID-19 ou patient·e·s particulièrement vulnérables (soins intensifs, soins intermédiaires, services pour patients atteints de COVID-19, urgences)**',
-'Personnes âgées de 65 ans ou plus (nées en 1956 ou avant)',
-'Personnes avec maladie chronique à\xa0risque*',
-'Proches aidants avec carte d\'urgence de l\'AVASAD ou proches aidants accompagnés par un CMS***'
-]
-
-OLD_FILE = 'vdvax.html'
 
 def scrape_page(url = URL_VD):
     # get the page
@@ -37,89 +26,123 @@ def scrape_page(url = URL_VD):
     return response.text
 
 
-def check_availability(soup, verbose):
+def find_availability(soup):
     hosps = soup.find_all('div', class_='hosp')
-    res = []
-    if verbose:
-        print('Checking availabilities:')
+    res = {}
+    #if verbose:
+    #    print('Checking availabilities:')
     for hosp in hosps:
         name = hosp.find('strong').text
         avail = hosp.find('span')['title']
-        if verbose:
-            print('- {}: {}'.format(name, avail))
-        if avail != 'Complet':
-            res.append('{}: {}'.format(name, avail))
+        #if verbose:
+        #    print('- {}: {}'.format(name, avail))
+        #if avail != 'Complet':
+        #    res.append('{}: {}'.format(name, avail))
+        res[name] = avail
     return res
 
 
-def check_eligibility(soup, verbose):
+def check_availibility(avails, old_avails):
+    for name in avails:
+        if name in old_avails:
+            if old_avails[name] != avails[name]:
+                return True
+        else:
+            return True
+    return False
+
+
+def find_eligibility(soup):
     avails = soup.find_all(id='vax_groups')
     res = []
-    if verbose:
-        print('Checking eligibility:')
+    #if verbose:
+    #    print('Checking eligibility:')
     for avail in avails:
         for item in avail.find_all('li'):
-            if item.text not in OLD_ELIGIBILITY:
-                res.append(item.text)
-            if verbose:
-                print('- {}'.format(item.text))
+            #if item.text not in OLD_ELIGIBILITY:
+            res.append(item.text)
+            #if verbose:
+            #    print('- {}'.format(item.text))
     return res
 
-def check_diff(html, args):
-    if args.diff:
-        old = ''
-        if os.path.isfile(OLD_FILE):
-            with open(OLD_FILE, 'r') as f:
-                old = f.read().splitlines()
-                f.close()
-        diffs = difflib.ndiff(old, html.splitlines())
-        added = 0
-        removed = 0
-        if args.verbose:
-            print('Checking for diffs:')
-        for line in diffs:
-            if line[0] == '+':
-                added += 1
-            if line[0] == '-':
-                removed += 1
-            if (line[0] == '+' or line[0] == '-'):
-                print(line)
 
-        # Store new file
-        if added != 0 or removed != 0:
-            print('Webpage has changed, diff: +{} -{} lines.'.format(added, removed))
-            print('Go check out {}'.format(URL_VD))
-            with open(OLD_FILE, 'w') as f:
-                f.write(html)
-                f.close()
+def check_eligibility(eligs, old_eligs):
+    for name in eligs:
+        if name not in old_eligs:
+            return True
+    return False
+
+
+def check_diff(html, old_html):
+    diffs = difflib.ndiff(old_html, html.splitlines())
+    added = 0
+    removed = 0
+    res = []
+    for line in diffs:
+        if line[0] == '+':
+            added += 1
+        if line[0] == '-':
+            removed += 1
+        if (line[0] == '+' or line[0] == '-'):
+            res.append(line)
+    return (added, removed, res)
 
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=__description__)
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False, required=False, help='Be a little more verbose.')
     parser.add_argument('-s', '--silent', dest='silent', action='store_true', default=False, required=False, help='Only print to console if anything has changed.')
-    parser.add_argument('-d', '--diff', dest='diff', action='store_true', default=False, required=False, help='Diff the web page to a local copy (and update if anything has changed). Sanity check if scraping is not perfect.')
+    parser.add_argument('-f', '--file', dest='file', default='checkvax.json', required=False, help='Filename to load/store checkvax data (default: "checkvax.json").')
     args = parser.parse_args()
+
+    # load dumped data
+    if os.path.isfile(args.file):
+        with open(args.file, 'r') as f:
+            dump = json.load(f)
+            f.close()    
+    else:
+        dump = {}
+        dump['html'] = ''
+        dump['eligibility'] = []
+        dump['availability'] = {}
 
     # scrape and parse html
     html = scrape_page()
     soup = BeautifulSoup(html, 'html.parser')
 
     # check availability and eligibility
-    locs = check_availability(soup, args.verbose)
-    eligs = check_eligibility(soup, args.verbose)
+    avails = find_availability(soup)
+    eligs = find_eligibility(soup)
 
-    if len(eligs) != 0:
-        print('Eligibility has changed, go check out {}'.format(URL_VD))
+    # Check if anything has changed (at a semantic level)
+    if check_availibility(avails, dump['availability']) or check_eligibility(eligs, dump['eligibility']):
+        print('Eligibility/availability has changed, go check out {}'.format(URL_VD))
         print('Eligibility:')
-        print(eligs)
+        # Print any new eligibility
+        for elig in eligs:
+            if elig not in dump['eligibility']:
+                print('- {}'.format(elig))
+        # print any new availability
         print('Availability:')
-        print(locs)
+        for name in avails:
+            if avails[name] != 'Complet':
+                print('- {}: {}'.format(name, avails[name]))
     else:
-        if not args.verbose and not args.silent:
-            print('No new eligibility found, omitting availability.')
+        if not args.silent:
+            print('No new eligibility or availibility found.')
 
+    dump['availability'] = avails
+    dump['eligibility'] = eligs
+
+    # Check if anything has changed (at a syntactic level)
     # diff old and new
-    check_diff(html, args)
+    (added, removed, res) = check_diff(html, dump['html'])
+    dump['html'] = html.splitlines()
+    if args.verbose and (added != 0 or removed != 0):
+        print('Dumping website diff ({} added {} removed):'.format(added, removed))
+        for line in res:
+            print(line)
 
-
+    with open(args.file, 'w') as f:
+        json.dump(dump, f)
+        f.close()    
