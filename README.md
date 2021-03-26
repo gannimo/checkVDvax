@@ -58,7 +58,7 @@ If you want to run the script as `cron` job, you may add the following to your
 `crontab`:
 
 ```
-*/15 *  * * *   USER cd /opt/checkvax && ./checkvax.py -s -d
+*/15 *  * * *   USER cd /opt/checkvax && ./checkvax.py -s
 ```
 
 You'll then receive an email to `USER` whenever the script picks something up.
@@ -66,6 +66,7 @@ You'll then receive an email to `USER` whenever the script picks something up.
 
 ## Changelog
 
+* 2021-03-26 version 0.3: fancier parsing and storing of data
 * 2021-03-25 version 0.2: added new eligibility (65+)
 * 2021-03-14 version 0.1: first script with base eligibility (75+)
 
