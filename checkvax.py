@@ -115,24 +115,25 @@ if __name__ == "__main__":
     eligs = find_eligibility(soup)
 
     # Check if anything has changed (at a semantic level)
-    if check_availibility(avails, dump['availability']) or check_eligibility(eligs, dump['eligibility']):
-        print('Eligibility/availability has changed, go check out {}'.format(URL_VD))
-        print('Eligibility:')
-        # Print any new eligibility
-        for elig in eligs:
-            if elig not in dump['eligibility']:
-                print('- {}'.format(elig))
-        # print any new availability
-        print('Availability:')
-        for name in avails:
-            if avails[name] != 'Complet':
-                print('- {}: {}'.format(name, avails[name]))
+    if check_eligibility(eligs, dump['eligibility']) or check_availibility(avails, dump['availability']):
+        print('Website has changed, go check out {}'.format(URL_VD))
     else:
         if not args.silent:
             print('No new eligibility or availibility found.')
 
-    dump['availability'] = avails
+    if check_eligibility(eligs, dump['eligibility']):
+        print('Eligibility:')
+        for elig in eligs:
+            if elig not in dump['eligibility']:
+                print('- {}'.format(elig))
     dump['eligibility'] = eligs
+
+    if check_availibility(avails, dump['availability']):
+        print('Availability:')
+        for name in avails:
+            if avails[name] != 'Complet':
+                print('- {}: {}'.format(name, avails[name]))
+    dump['availability'] = avails
 
     # Check if anything has changed (at a syntactic level)
     # diff old and new
@@ -142,6 +143,8 @@ if __name__ == "__main__":
         print('Dumping website diff ({} added {} removed):'.format(added, removed))
         for line in res:
             print(line)
+    if not args.verbose and (added != 0 or removed != 0):
+        print('Website has changed, diff: +{} -{} lines.'.format(added, removed))
 
     with open(args.file, 'w') as f:
         json.dump(dump, f)
